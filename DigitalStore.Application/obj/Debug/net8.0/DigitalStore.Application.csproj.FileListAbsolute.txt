@@ -1,0 +1,17 @@
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\bin\Debug\net8.0\DigitalStore.Application.deps.json
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\bin\Debug\net8.0\DigitalStore.Application.dll
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\bin\Debug\net8.0\DigitalStore.Application.pdb
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\bin\Debug\net8.0\DigitalStore.Domain.dll
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\bin\Debug\net8.0\DigitalStore.Shared.dll
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\bin\Debug\net8.0\DigitalStore.Domain.pdb
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\bin\Debug\net8.0\DigitalStore.Shared.pdb
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\DigitalStore.Application.csproj.AssemblyReference.cache
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\DigitalStore.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\DigitalStore.Application.AssemblyInfoInputs.cache
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\DigitalStore.Application.AssemblyInfo.cs
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\DigitalStore.Application.csproj.CoreCompileInputs.cache
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\DigitalS.E817613A.Up2Date
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\DigitalStore.Application.dll
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\refint\DigitalStore.Application.dll
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\DigitalStore.Application.pdb
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\ref\DigitalStore.Application.dll
