@@ -15,3 +15,4 @@ C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8
 C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\refint\DigitalStore.Application.dll
 C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\DigitalStore.Application.pdb
 C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\ref\DigitalStore.Application.dll
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Application\obj\Debug\net8.0\DigitalStore.Application.sourcelink.json

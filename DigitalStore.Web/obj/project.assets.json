@@ -2,6 +2,18 @@
   "version": 3,
   "targets": {
     "net8.0": {
+      "Blazored.LocalStorage/4.5.0": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.AspNetCore.Components.Web": "8.0.0"
+        },
+        "compile": {
+          "lib/net8.0/Blazored.LocalStorage.dll": {}
+        },
+        "runtime": {
+          "lib/net8.0/Blazored.LocalStorage.dll": {}
+        }
+      },
       "Humanizer.Core/2.14.1": {
         "type": "package",
         "compile": {
@@ -1099,7 +1111,7 @@
           }
         }
       },
-      "Supabase.Postgrest/4.0.3": {
+      "Supabase.Postgrest/4.1.0": {
         "type": "package",
         "dependencies": {
           "Newtonsoft.Json": "13.0.3",
@@ -1453,7 +1465,8 @@
         "dependencies": {
           "DigitalStore.Domain": "1.0.0",
           "DigitalStore.Shared": "1.0.0",
-          "MediatR": "14.0.0"
+          "MediatR": "14.0.0",
+          "Supabase.Postgrest": "4.1.0"
         },
         "compile": {
           "bin/placeholder/DigitalStore.Application.dll": {}
@@ -1500,6 +1513,18 @@
       }
     },
     "net8.0/browser-wasm": {
+      "Blazored.LocalStorage/4.5.0": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.AspNetCore.Components.Web": "8.0.0"
+        },
+        "compile": {
+          "lib/net8.0/Blazored.LocalStorage.dll": {}
+        },
+        "runtime": {
+          "lib/net8.0/Blazored.LocalStorage.dll": {}
+        }
+      },
       "Humanizer.Core/2.14.1": {
         "type": "package",
         "compile": {
@@ -2597,7 +2622,7 @@
           }
         }
       },
-      "Supabase.Postgrest/4.0.3": {
+      "Supabase.Postgrest/4.1.0": {
         "type": "package",
         "dependencies": {
           "Newtonsoft.Json": "13.0.3",
@@ -2945,7 +2970,8 @@
         "dependencies": {
           "DigitalStore.Domain": "1.0.0",
           "DigitalStore.Shared": "1.0.0",
-          "MediatR": "14.0.0"
+          "MediatR": "14.0.0",
+          "Supabase.Postgrest": "4.1.0"
         },
         "compile": {
           "bin/placeholder/DigitalStore.Application.dll": {}
@@ -2993,6 +3019,22 @@
     }
   },
   "libraries": {
+    "Blazored.LocalStorage/4.5.0": {
+      "sha512": "6nZuJwA7zNIKx83IsObiHXZb09ponJOpCClU3en+hI8ZFvrOKXeOw+H7TegQZQrvdR1n9fkrVkEBQZg8vx6ZTw==",
+      "type": "package",
+      "path": "blazored.localstorage/4.5.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "blazored.localstorage.4.5.0.nupkg.sha512",
+        "blazored.localstorage.nuspec",
+        "icon.png",
+        "lib/net6.0/Blazored.LocalStorage.dll",
+        "lib/net7.0/Blazored.LocalStorage.dll",
+        "lib/net8.0/Blazored.LocalStorage.dll"
+      ]
+    },
     "Humanizer.Core/2.14.1": {
       "sha512": "lQKvtaTDOXnoVJ20ibTuSIOf2i0uO0MPbDhd1jm238I+U/2ZnRENj0cktKZhtchBMtCUSRQ5v4xBCUbKNmyVMw==",
       "type": "package",
@@ -4839,10 +4881,10 @@
         "supabase.gotrue.nuspec"
       ]
     },
-    "Supabase.Postgrest/4.0.3": {
-      "sha512": "hpDIh+E5bDgZiHMuM6l+RDm9WWlt/T3fXXFQoqzlsrJFesFMNzkK9feVBG5egJyL/OlwmxuLsnPkR7O+bV3Vcw==",
+    "Supabase.Postgrest/4.1.0": {
+      "sha512": "DwgBVeU3Xjo1pr7vJ7EiTEHFHa7bN4CwOvsiDqTFfT5Q8Dq1Ok/KT7P6XUbs578zYA2uQb7II8TLo0dfv6Qx5g==",
       "type": "package",
-      "path": "supabase.postgrest/4.0.3",
+      "path": "supabase.postgrest/4.1.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -4850,7 +4892,7 @@
         "icon.png",
         "lib/netstandard2.0/Supabase.Postgrest.dll",
         "lib/netstandard2.0/Supabase.Postgrest.xml",
-        "supabase.postgrest.4.0.3.nupkg.sha512",
+        "supabase.postgrest.4.1.0.nupkg.sha512",
         "supabase.postgrest.nuspec"
       ]
     },
@@ -5334,6 +5376,7 @@
   },
   "projectFileDependencyGroups": {
     "net8.0": [
+      "Blazored.LocalStorage >= 4.5.0",
       "DigitalStore.Application >= 1.0.0",
       "DigitalStore.Infrastructure >= 1.0.0",
       "DigitalStore.Shared >= 1.0.0",
@@ -5342,7 +5385,8 @@
       "Microsoft.EntityFrameworkCore.Design >= 8.0.11",
       "Microsoft.NET.ILLink.Tasks >= 8.0.22",
       "Microsoft.NET.Sdk.WebAssembly.Pack >= 10.0.0",
-      "Supabase >= 1.1.0"
+      "Supabase >= 1.1.0",
+      "Supabase.Postgrest >= 4.1.0"
     ]
   },
   "packageFolders": {
@@ -5406,6 +5450,10 @@
       "net8.0": {
         "targetAlias": "net8.0",
         "dependencies": {
+          "Blazored.LocalStorage": {
+            "target": "Package",
+            "version": "[4.5.0, )"
+          },
           "Microsoft.AspNetCore.Components.WebAssembly": {
             "target": "Package",
             "version": "[8.0.11, )"
@@ -5436,6 +5484,10 @@
           "Supabase": {
             "target": "Package",
             "version": "[1.1.0, )"
+          },
+          "Supabase.Postgrest": {
+            "target": "Package",
+            "version": "[4.1.0, )"
           }
         },
         "imports": [

@@ -9,3 +9,4 @@ C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Debug\net8.0\Di
 C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Debug\net8.0\refint\DigitalStore.Domain.dll
 C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Debug\net8.0\DigitalStore.Domain.pdb
 C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Debug\net8.0\ref\DigitalStore.Domain.dll
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Debug\net8.0\DigitalStore.Domain.sourcelink.json

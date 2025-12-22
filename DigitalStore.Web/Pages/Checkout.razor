@@ -1,6 +1,32 @@
-﻿@page "/Checkout"
-<h3>Checkout</h3>
+﻿@page "/checkout"
+@using DigitalStore.Web.Services
+@inject CartService CartService
+
+<PageTitle>Оформление заказа — Digital Store</PageTitle>
+
+<h3 class="my-4">Оформление заказа</h3>
+
+@if (_totalItems == 0)
+{
+    <p>Корзина пуста. <a href="/catalog">Перейти в каталог</a></p>
+}
+else
+{
+    <p>Товаров в корзине: @_totalItems</p>
+    <p class="fs-4">Сумма: <strong class="text-success">@_totalPrice.ToString("F0") ₽</strong></p>
+}
+
+<p>Страница оформления заказа в разработке. Скоро здесь будет форма и оплата!Идите гладить кошей!(На самом деле оплаты не будет)</p>
+
+<a href="/cart" class="btn btn-secondary">Вернуться в корзину</a>
 
 @code {
-    
+    private int _totalItems = 0;
+    private decimal _totalPrice = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _totalItems = await CartService.GetTotalCountAsync();
+        _totalPrice = await CartService.GetTotalPriceAsync();
+    }
 }

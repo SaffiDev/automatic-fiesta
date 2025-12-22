@@ -1,6 +1,192 @@
-﻿@page "/ProductDetail"
-<h3>ProductDetail</h3>
+﻿@page "/product/{ProductId:int}"
+@using DigitalStore.Application.DTOs
+@using DigitalStore.Web.Services
+@using DigitalStore.Web.WebModels   <!-- ← ДОБАВИЛИ USING ДЛЯ CartProductDto -->
+@inject SupabaseService Supabase
+@inject NavigationManager Navigation
+@inject CartService CartService
+
+<PageTitle>@(_product?.Name ?? "Товар не найден") — Digital Store</PageTitle>
+
+<div class="container my-5">
+    @if (_isLoading)
+    {
+        <div class="text-center my-5">
+            <p class="lead">Загрузка товара...</p>
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="alert alert-danger">
+            <h4>Ошибка загрузки товара</h4>
+            <p>@_errorMessage</p>
+            @if (!string.IsNullOrEmpty(_errorDetails))
+            {
+                <hr />
+                <pre style="font-size: 12px; max-height: 300px; overflow-y: auto;">@_errorDetails</pre>
+            }
+            <a href="/catalog" class="btn btn-primary mt-3">Вернуться в каталог</a>
+        </div>
+    }
+    else if (_product == null)
+    {
+        <div class="alert alert-warning text-center">
+            <h4>Товар не найден</h4>
+            <p>Возможно, товар был удалён или указан неверный адрес.</p>
+            <a href="/catalog" class="btn btn-primary">Вернуться в каталог</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-5">
+            <!-- Левая часть: большая иконка -->
+            <div class="col-lg-6">
+                <div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 500px;">
+                    <span class="display-1 opacity-50">@GetProductIcon(_product.ProductType)</span>
+                </div>
+            </div>
+
+            <!-- Правая часть: информация о товаре -->
+            <div class="col-lg-6">
+                <h1 class="display-5 fw-bold mb-3">@_product.Name</h1>
+
+                @if (!string.IsNullOrEmpty(_product.Author))
+                {
+                    <p class="lead text-muted mb-1">Автор: @_product.Author</p>
+                }
+                @if (!string.IsNullOrEmpty(_product.Publisher))
+                {
+                    <p class="text-muted mb-3">Издатель: @_product.Publisher</p>
+                }
+
+                @if (!string.IsNullOrEmpty(_product.Version))
+                {
+                    <p class="text-muted mb-1">Версия: @_product.Version</p>
+                }
+                @if (!string.IsNullOrEmpty(_product.Language))
+                {
+                    <p class="text-muted mb-3">Язык: @_product.Language</p>
+                }
+
+                <div class="mb-4">
+                    <span class="text-success display-4 fw-bold">@_product.Price.ToString("F0") ₽</span>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_product.Description))
+                {
+                    <p class="fs-5 text-dark mb-4">@_product.Description</p>
+                }
+
+                <div class="mt-5 d-flex gap-3">
+                    <button class="btn btn-success btn-lg px-5" @onclick="AddToCart">
+                        В корзину
+                    </button>
+                    <button class="btn btn-outline-secondary btn-lg" @onclick="GoBack">
+                        Назад в каталог
+                    </button>
+                </div>
+
+                <!-- Всплывающее уведомление -->
+                @if (_showToast)
+                {
+                    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
+                        <div class="toast show align-items-center text-bg-success border-0" role="alert">
+                            <div class="d-flex">
+                                <div class="toast-body fw-bold">
+                                    ✅ Товар добавлен в корзину!
+                                    <a href="/cart" class="text-white text-decoration-underline ms-2">Перейти в корзину</a>
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" @onclick="() => _showToast = false"></button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div> 
+
+        <!--Заглушка отзывов -->
+        <div class="mt-5">
+            <h3 class="mb-4">Отзывы</h3>
+            <p class="text-muted">Отзывы будут доступны после реализации системы рейтингов.</p>
+        </div>
+    }
+</div> 
 
 @code {
-    
+    [Parameter] public int ProductId { get; set; }
+
+    private ProductDto? _product;
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private string? _errorDetails;
+    private bool _showToast = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProduct();
+    }
+
+    private async Task LoadProduct()
+    {
+        try
+        {
+            _isLoading = true;
+            _errorMessage = null;
+            _errorDetails = null;
+
+            _product = await Supabase.GetProductByIdAsync(ProductId);
+
+            if (_product == null)
+            {
+                _errorMessage = "Товар с таким ID не найден или неактивен.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Ошибка загрузки: {ex.Message}";
+            _errorDetails = ex.ToString();
+            _product = null;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task AddToCart()
+    {
+        if (_product != null)
+        {
+            await CartService.AddProductAsync(_product);
+            
+            _showToast = true;
+            StateHasChanged();
+
+            _ = Task.Delay(4000).ContinueWith(_ =>
+            {
+                _showToast = false;
+                InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/catalog");
+    }
+
+    private string GetProductIcon(string? type)
+    {
+        if (string.IsNullOrEmpty(type)) return "📦";
+        return type.ToLower() switch
+        {
+            "music" => "🎵",
+            "book" => "📖",
+            "software" => "💻",
+            _ => "📦"
+        };
+    }
 }

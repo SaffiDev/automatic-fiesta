@@ -1,6 +1,111 @@
-﻿@page "/Cart"
-<h3>Cart</h3>
+﻿@page "/cart"
+@using DigitalStore.Web.WebModels
+@using DigitalStore.Web.Services
+@using DigitalStore.Application.DTOs
+@inject CartService CartService
+@inject NavigationManager Navigation
+
+<PageTitle>Корзина — Digital Store</PageTitle>
+
+<div class="container my-5">
+    <h1 class="mb-4">Корзина</h1>
+
+    @if (_cartItems.Count == 0)
+    {
+        <div class="text-center py-5">
+            <p class="lead">Корзина пуста</p>
+            <a href="/catalog" class="btn btn-primary">Перейти в каталог</a>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-lg-8">
+                @foreach (var item in _cartItems)
+                {
+                    <div class="card mb-3">
+                        <div class="card-body d-flex">
+                            <div class="me-4">
+                                <span class="display-4 opacity-50">@GetIcon(item.Product.ProductType)</span>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5>@item.Product.Name</h5>
+                                @if (!string.IsNullOrEmpty(item.Product.Author))
+                                {
+                                    <p class="text-muted small">Автор: @item.Product.Author</p>
+                                }
+                                <p class="h5 text-success">@item.Product.Price.ToString("F0") ₽</p>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-outline-secondary" @onclick="() => ChangeQuantity(item.Product.Id, item.Quantity - 1)">–</button>
+                                <span class="mx-3 fw-bold">@item.Quantity</span>
+                                <button class="btn btn-outline-secondary" @onclick="() => ChangeQuantity(item.Product.Id, item.Quantity + 1)">+</button>
+                                <button class="btn btn-danger ms-3" @onclick="() => CartService.RemoveProductAsync(item.Product.Id)">Удалить</button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h4>Итого</h4>
+                        <div class="d-flex justify-content-between my-3">
+                            <span>Товаров: @_cartItems.Sum(i => i.Quantity)</span>
+                            <span>@_totalPrice.ToString("F0") ₽</span>
+                        </div>
+                        <hr />
+                        <div class="d-flex justify-content-between fw-bold fs-4">
+                            <span>К оплате</span>
+                            <span class="text-success">@_totalPrice.ToString("F0") ₽</span>
+                        </div>
+
+                       
+                        <button class="btn btn-success btn-lg w-100 mt-4"
+                                @onclick="@(() => Navigation.NavigateTo("/checkout", false))">
+                            Оформить заказ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
 
 @code {
-    
+    private List<CartItem> _cartItems = new();
+    private decimal _totalPrice = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CartService.OnChange += StateHasChanged;
+        await RefreshCart();
+    }
+
+    private async Task RefreshCart()
+    {
+        _cartItems = await CartService.GetLocalItemsAsync();
+        _totalPrice = await CartService.GetTotalPriceAsync();
+        StateHasChanged();
+    }
+
+    private async Task ChangeQuantity(int productId, int newQuantity)
+    {
+        await CartService.UpdateQuantityAsync(productId, newQuantity);
+        await RefreshCart();
+    }
+
+    private string GetIcon(string? type) => type?.ToLower() switch
+    {
+        "music" => "🎵",
+        "book" => "📖",
+        "software" => "💻",
+        _ => "📦"
+    };
+
+    public void Dispose()
+    {
+        CartService.OnChange -= StateHasChanged;
+    }
 }

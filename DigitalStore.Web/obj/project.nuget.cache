@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "xLVrVp690zU=",
+  "dgSpecHash": "F67fztYGVok=",
   "success": true,
   "projectFilePath": "C:\\Users\\Daria\\source\\repos\\DigitalStore\\DigitalStore.Web\\DigitalStore.Web.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\Daria\\.nuget\\packages\\blazored.localstorage\\4.5.0\\blazored.localstorage.4.5.0.nupkg.sha512",
     "C:\\Users\\Daria\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\Daria\\.nuget\\packages\\mediatr\\14.0.0\\mediatr.14.0.0.nupkg.sha512",
     "C:\\Users\\Daria\\.nuget\\packages\\mediatr.contracts\\2.0.1\\mediatr.contracts.2.0.1.nupkg.sha512",
@@ -61,7 +62,7 @@
     "C:\\Users\\Daria\\.nuget\\packages\\supabase.core\\1.0.0\\supabase.core.1.0.0.nupkg.sha512",
     "C:\\Users\\Daria\\.nuget\\packages\\supabase.functions\\2.0.0\\supabase.functions.2.0.0.nupkg.sha512",
     "C:\\Users\\Daria\\.nuget\\packages\\supabase.gotrue\\6.0.2\\supabase.gotrue.6.0.2.nupkg.sha512",
-    "C:\\Users\\Daria\\.nuget\\packages\\supabase.postgrest\\4.0.3\\supabase.postgrest.4.0.3.nupkg.sha512",
+    "C:\\Users\\Daria\\.nuget\\packages\\supabase.postgrest\\4.1.0\\supabase.postgrest.4.1.0.nupkg.sha512",
     "C:\\Users\\Daria\\.nuget\\packages\\supabase.realtime\\7.0.1\\supabase.realtime.7.0.1.nupkg.sha512",
     "C:\\Users\\Daria\\.nuget\\packages\\supabase.storage\\2.0.2\\supabase.storage.2.0.2.nupkg.sha512",
     "C:\\Users\\Daria\\.nuget\\packages\\system.codedom\\4.4.0\\system.codedom.4.4.0.nupkg.sha512",
