@@ -1,0 +1,12 @@
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\bin\Release\net8.0\DigitalStore.Domain.deps.json
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\bin\Release\net8.0\DigitalStore.Domain.dll
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\bin\Release\net8.0\DigitalStore.Domain.pdb
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Release\net8.0\DigitalStore.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Release\net8.0\DigitalStore.Domain.AssemblyInfoInputs.cache
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Release\net8.0\DigitalStore.Domain.AssemblyInfo.cs
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Release\net8.0\DigitalStore.Domain.csproj.CoreCompileInputs.cache
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Release\net8.0\DigitalStore.Domain.sourcelink.json
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Release\net8.0\DigitalStore.Domain.dll
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Release\net8.0\refint\DigitalStore.Domain.dll
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Release\net8.0\DigitalStore.Domain.pdb
+C:\Users\Daria\source\repos\DigitalStore\DigitalStore.Domain\obj\Release\net8.0\ref\DigitalStore.Domain.dll

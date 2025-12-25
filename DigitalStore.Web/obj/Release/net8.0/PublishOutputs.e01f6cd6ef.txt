@@ -1,0 +1,2 @@
+C:\Users\Daria\source\repos\DigitalStore\publish\emcc-props.json
+C:\Users\Daria\source\repos\DigitalStore\publish\web.config

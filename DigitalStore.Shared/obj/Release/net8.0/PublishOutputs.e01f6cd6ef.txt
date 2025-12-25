@@ -1,0 +1,3 @@
+C:\Users\Daria\source\repos\DigitalStore\publish\DigitalStore.Shared.dll
+C:\Users\Daria\source\repos\DigitalStore\publish\DigitalStore.Shared.deps.json
+C:\Users\Daria\source\repos\DigitalStore\publish\DigitalStore.Shared.pdb

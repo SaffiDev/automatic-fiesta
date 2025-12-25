@@ -11,13 +11,17 @@ public class CartService
     private readonly ILocalStorageService _localStorage;
     private readonly SupabaseService _supabase;
 
+    private const int MaxQuantityPerItem = 50;     // При превышении — матерный тост
+    private const int AbsoluteMaxQuantity = 100;   // Жёсткий лимит — дальше нельзя
+
+    public event Action? OnChange;
+    public event Action<string>? OnNotification;  // Для тостов с сообщениями
+
     public CartService(ILocalStorageService localStorage, SupabaseService supabase)
     {
         _localStorage = localStorage;
         _supabase = supabase;
     }
-
-    public event Action? OnChange;
 
     // ============ ЛОКАЛЬНАЯ ЧАСТЬ (ГОСТЬ) ============
     public async Task<List<CartItem>> GetLocalItemsAsync()
@@ -29,14 +33,38 @@ public class CartService
     public async Task AddProductAsync(ProductDto product, int quantity = 1)
     {
         var cart = await GetLocalItemsAsync();
-        var cartProduct = new CartProductDto(product);
-
         var existing = cart.FirstOrDefault(x => x.Product.Id == product.Id);
 
+        int newQuantity = quantity;
         if (existing != null)
-            existing.Quantity += quantity;
+        {
+            newQuantity += existing.Quantity;
+        }
+
+        // Жёсткий лимит 100 — дальше нельзя вообще
+        if (newQuantity > AbsoluteMaxQuantity)
+        {
+            return;
+        }
+
+        // Превышение 50 —  тост
+        if (newQuantity > MaxQuantityPerItem)
+        {
+            OnNotification?.Invoke("Нельзя купить больше 50 товаров за раз");
+            OnChange?.Invoke(); 
+            return;
+        }
+
+        var cartProduct = new CartProductDto(product);
+
+        if (existing != null)
+        {
+            existing.Quantity = newQuantity;
+        }
         else
-            cart.Add(new CartItem { Product = cartProduct, Quantity = quantity });
+        {
+            cart.Add(new CartItem { Product = cartProduct, Quantity = newQuantity });
+        }
 
         await _localStorage.SetItemAsync(LocalStorageKey, cart);
         OnChange?.Invoke();
@@ -52,12 +80,27 @@ public class CartService
 
         var cart = await GetLocalItemsAsync();
         var item = cart.FirstOrDefault(x => x.Product.Id == productId);
-        if (item != null)
+
+        if (item == null)
+            return;
+
+        // Жёсткий лимит 100
+        if (quantity > AbsoluteMaxQuantity)
         {
-            item.Quantity = quantity;
-            await _localStorage.SetItemAsync(LocalStorageKey, cart);
-            OnChange?.Invoke();
+            return;
         }
+
+        // Превышение 50 — тост и блокировка
+        if (quantity > MaxQuantityPerItem)
+        {
+            OnNotification?.Invoke("Ты долбоёб, что делаешь?");
+            OnChange?.Invoke();
+            return;
+        }
+
+        item.Quantity = quantity;
+        await _localStorage.SetItemAsync(LocalStorageKey, cart);
+        OnChange?.Invoke();
     }
 
     public async Task RemoveProductAsync(int productId)
@@ -95,7 +138,6 @@ public class CartService
         foreach (var item in localCart)
         {
             var product = await _supabase.GetProductByIdAsync(item.Product.Id);
-            
             if (product != null)
             {
                 result.Add(new CartItemWithProduct
@@ -112,7 +154,6 @@ public class CartService
         return result;
     }
 
-    // ПЕРЕМЕСТИЛ КЛАСС ВНУТРЬ CartService
     public class CartItemWithProduct
     {
         public int ProductId { get; set; }

@@ -5,6 +5,7 @@
 @using DigitalStore.Application.DTOs
 @inject CartService CartService
 @inject NavigationManager Navigation
+@implements IDisposable
 
 <PageTitle>Корзина — Digital Store</PageTitle>
 
@@ -61,10 +62,7 @@
                             <span>К оплате</span>
                             <span class="text-success">@_totalPrice.ToString("F0") ₽</span>
                         </div>
-
-                        <button class="btn btn-success btn-lg w-100 mt-4" @onclick="OpenCheckout">
-                            Оформить заказ
-                        </button>
+                        <button class="btn btn-success btn-lg w-100 mt-4" @onclick="OpenCheckout">Оформить заказ</button>
                     </div>
                 </div>
             </div>
@@ -72,7 +70,21 @@
     }
 </div>
 
-<!-- Модальное окно оформления заказа -->
+<!-- Большой тост по центру экрана -->
+@if (_showInsultToast)
+{
+    <div class="position-fixed top-50 start-50 translate-middle" style="z-index: 9999;">
+        <div class="card border-danger shadow-lg" style="min-width: 500px;">
+            <div class="card-body text-center bg-danger text-white py-5">
+                <h2 class="fw-bold mb-4">@_insultMessage</h2>
+                <button class="btn btn-light btn-lg px-5" @onclick="() => _showInsultToast = false">
+                    Ок
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 <Checkout @ref="_checkoutModal" OnClose="HandleCheckoutClose" />
 
 @code {
@@ -80,9 +92,14 @@
     private decimal _totalPrice = 0;
     private Checkout? _checkoutModal;
 
+    private bool _showInsultToast = false;
+    private string _insultMessage = "";
+
     protected override async Task OnInitializedAsync()
     {
         CartService.OnChange += StateHasChanged;
+        CartService.OnNotification += ShowInsultToast;
+
         await RefreshCart();
     }
 
@@ -109,8 +126,19 @@
 
     private async Task HandleCheckoutClose()
     {
-        // Обновляем корзину после закрытия окна (если заказ был создан, корзина очистится)
         await RefreshCart();
+    }
+
+    private void ShowInsultToast(string message)
+    {
+        _insultMessage = message;
+        _showInsultToast = true;
+
+        _ = Task.Delay(8000).ContinueWith(_ =>
+        {
+            _showInsultToast = false;
+            InvokeAsync(StateHasChanged);
+        });
     }
 
     private string GetIcon(string? type) => type?.ToLower() switch
@@ -124,5 +152,6 @@
     public void Dispose()
     {
         CartService.OnChange -= StateHasChanged;
+        CartService.OnNotification -= ShowInsultToast;
     }
 }

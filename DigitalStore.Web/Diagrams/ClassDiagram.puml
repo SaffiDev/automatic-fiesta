@@ -1,0 +1,54 @@
+﻿@startuml
+!theme plain
+class User {
+  +id: UUID
+  +email: string
+}
+
+class Product {
+  +id: UUID
+  +name: string
+  +category: string
+  +price: decimal
+  +discount: int
+}
+
+class Review {
+  +id: UUID
+  +rating: int
+  +comment: string
+}
+
+class Order {
+  +id: UUID
+  +createdAt: datetime
+  +status: string
+}
+
+class OrderItem {
+  +quantity: int
+  +price: decimal
+}
+
+class WishlistItem {
+  +id: UUID
+}
+
+class DigitalContent {
+  +fileUrl: string
+}
+
+User "1" -- "0..*" Order
+User "1" -- "0..*" Review
+
+Product "1" -- "0..*" Review
+Product "1" -- "0..*" OrderItem
+
+Order "1" -- "1..*" OrderItem
+OrderItem "*" -- "1" Product
+
+Product "0..1" -- DigitalContent
+User "1" -- "0..*" WishlistItem
+WishlistItem "*" -- "1" Product
+
+@enduml

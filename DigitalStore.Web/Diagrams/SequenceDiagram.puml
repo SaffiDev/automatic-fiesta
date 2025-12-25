@@ -1,0 +1,26 @@
+﻿@startuml
+!theme blueprint
+actor User
+participant "Blazor Client" as Client
+participant "Supabase API" as API
+database "Supabase DB" as DB
+
+== Оформление заказа ==
+
+User -> Client : Нажать «Оформить заказ»
+Client -> API : createOrder()
+API -> DB : insert Order
+DB --> API : OK
+API --> Client : OrderId
+Client --> User : Заказ оформлен
+
+== Добавление отзыва ==
+
+User -> Client : Отправить отзыв
+Client -> API : addReview(productId, rating, text)
+API -> DB : insert Review
+DB --> API : OK
+API --> Client : Success
+Client --> User : Отзыв добавлен
+
+@enduml

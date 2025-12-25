@@ -1,0 +1,3 @@
+C:\Users\Daria\source\repos\DigitalStore\publish\DigitalStore.Domain.dll
+C:\Users\Daria\source\repos\DigitalStore\publish\DigitalStore.Domain.deps.json
+C:\Users\Daria\source\repos\DigitalStore\publish\DigitalStore.Domain.pdb
