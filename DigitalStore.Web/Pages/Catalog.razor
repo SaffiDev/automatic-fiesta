@@ -3,6 +3,8 @@
 @using DigitalStore.Web.Services
 @inject SupabaseService Supabase
 @inject NavigationManager Navigation
+@inject WishlistService WishlistService  
+@inject AuthService AuthService         
 
 <PageTitle>Каталог — Digital Store</PageTitle>
 
@@ -34,7 +36,7 @@
     {
         <!-- Фильтр по категориям -->
         <div class="mb-5 text-center">
-            <button class="btn @(selectedCategoryId == 0 ? "btn-primary" : "btn-outline-primary") me-3 mb-2" 
+            <button class="btn @(selectedCategoryId == 0 ? "btn-primary" : "btn-outline-primary") me-3 mb-2"
                     @onclick="() => FilterCategory(0)">
                 Все товары (@products.Count)
             </button>
@@ -42,7 +44,7 @@
             {
                 @foreach (var category in activeCategories)
                 {
-                    <button class="btn @(selectedCategoryId == category.Id ? "btn-primary" : "btn-outline-primary") me-3 mb-2" 
+                    <button class="btn @(selectedCategoryId == category.Id ? "btn-primary" : "btn-outline-primary") me-3 mb-2"
                             @onclick="() => FilterCategory(category.Id)">
                         @category.Name
                     </button>
@@ -60,7 +62,32 @@
                 @foreach (var product in filteredProducts)
                 {
                     <div class="col">
-                        <div class="card h-100 shadow-sm border-0 hover-shadow">
+                        <div class="card h-100 shadow-sm border-0 hover-shadow position-relative">
+                            <!-- КНОПКА ИЗБРАННОГО В УГЛУ КАРТОЧКИ -->
+                            @if (AuthService.IsAuthenticated)
+                            {
+                                <div class="position-absolute top-0 end-0 p-2" style="z-index: 10;">
+                                    @if (wishlistStatus.TryGetValue(product.Id, out var isInWishlist) && isInWishlist)
+                                    {
+                                        <button class="btn btn-danger btn-sm rounded-circle shadow"
+                                                @onclick="() => ToggleWishlist(product.Id)"
+                                                @onclick:preventDefault
+                                                @onclick:stopPropagation>
+                                            <i class="bi bi-heart-fill"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-outline-danger btn-sm rounded-circle shadow"
+                                                @onclick="() => ToggleWishlist(product.Id)"
+                                                @onclick:preventDefault
+                                                @onclick:stopPropagation>
+                                            <i class="bi bi-heart"></i>
+                                        </button>
+                                    }
+                                </div>
+                            }
+
                             <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 250px;">
                                 <span class="display-1 opacity-50">@GetProductIcon(product?.ProductType ?? "")</span>
                             </div>
@@ -81,7 +108,8 @@
                                     <p class="card-text mb-4">
                                         <strong class="text-success display-6">@((product?.Price ?? 0).ToString("F0")) ₽</strong>
                                     </p>
-                                    <button class="btn btn-primary btn-lg w-100" @onclick="() => GoToProduct(product?.Id ?? 0)">
+                                    <button class="btn btn-primary btn-lg w-100"
+                                            @onclick="() => GoToProduct(product?.Id ?? 0)">
                                         Подробнее
                                     </button>
                                 </div>
@@ -99,130 +127,99 @@
     private List<CategoryDto> categories = new();
     private List<ProductDto> filteredProducts = new();
     private List<CategoryDto> activeCategories = new();
-
     private bool isLoading = true;
     private string? errorMessage;
     private string? errorDetails;
     private int selectedCategoryId = 0;
 
+    // Словарь для хранения статуса избранного по ID товара
+    private Dictionary<int, bool> wishlistStatus = new();
+
     protected override async Task OnInitializedAsync()
     {
         Console.WriteLine("=== НАЧАЛО ЗАГРУЗКИ ===");
-        
         try
         {
             isLoading = true;
-            Console.WriteLine("1. Начинаем загрузку товаров...");
-            
-            // Загружаем товары
+
             var loadedProducts = await Supabase.GetProductsAsync();
-            Console.WriteLine($"2. Товары загружены: {loadedProducts?.Count ?? 0} шт");
-            
             products = loadedProducts ?? new List<ProductDto>();
-            Console.WriteLine($"3. Список товаров инициализирован: {products.Count} шт");
 
-            // Загружаем категории
-            Console.WriteLine("4. Начинаем загрузку категорий...");
             var loadedCategories = await Supabase.GetCategoriesAsync();
-            Console.WriteLine($"5. Категории загружены: {loadedCategories?.Count ?? 0} шт");
-            
             categories = loadedCategories ?? new List<CategoryDto>();
-            Console.WriteLine($"6. Список категорий инициализирован: {categories.Count} шт");
 
-            // Фильтруем активные категории
-            Console.WriteLine("7. Фильтруем активные категории...");
             activeCategories = categories.Where(c => c != null && c.IsActive).ToList();
-            Console.WriteLine($"8. Активных категорий: {activeCategories.Count} шт");
 
-            // Показываем все товары по умолчанию
-            Console.WriteLine("9. Применяем фильтр по умолчанию...");
+            // Загружаем статус избранного для всех товаров (только если залогинен)
+            if (AuthService.IsAuthenticated)
+            {
+                var wishlistProducts = await WishlistService.GetWishlistProductsAsync();
+                foreach (var p in products)
+                {
+                    wishlistStatus[p.Id] = wishlistProducts.Any(wp => wp.Id == p.Id);
+                }
+            }
+
             FilterCategory(0);
-            Console.WriteLine($"10. Отфильтровано товаров: {filteredProducts.Count} шт");
-            
-            Console.WriteLine("=== ЗАГРУЗКА ЗАВЕРШЕНА УСПЕШНО ===");
         }
         catch (Exception ex)
         {
             errorMessage = $"Ошибка: {ex.GetType().Name} - {ex.Message}";
-            errorDetails = $"StackTrace:\n{ex.StackTrace}\n\nInnerException: {ex.InnerException?.Message}";
-            
-            Console.WriteLine($"!!! ОШИБКА: {ex.GetType().Name}");
-            Console.WriteLine($"!!! Сообщение: {ex.Message}");
-            Console.WriteLine($"!!! StackTrace: {ex.StackTrace}");
-            if (ex.InnerException != null)
-            {
-                Console.WriteLine($"!!! InnerException: {ex.InnerException.Message}");
-                Console.WriteLine($"!!! Inner StackTrace: {ex.InnerException.StackTrace}");
-            }
-            
-            // Инициализируем пустые списки
-            products = new List<ProductDto>();
-            categories = new List<CategoryDto>();
-            filteredProducts = new List<ProductDto>();
-            activeCategories = new List<CategoryDto>();
+            errorDetails = ex.ToString();
+            products = new();
+            categories = new();
+            filteredProducts = new();
+            activeCategories = new();
         }
         finally
         {
             isLoading = false;
-            Console.WriteLine("=== ЗАВЕРШЕНИЕ МЕТОДА OnInitializedAsync ===");
         }
     }
 
     private void FilterCategory(int categoryId)
     {
-        Console.WriteLine($"FilterCategory вызван с ID: {categoryId}");
-        
-        try
-        {
-            selectedCategoryId = categoryId;
-            
-            if (products == null)
-            {
-                Console.WriteLine("!!! products = null");
-                filteredProducts = new List<ProductDto>();
-                return;
-            }
+        selectedCategoryId = categoryId;
 
-            Console.WriteLine($"Всего товаров: {products.Count}");
-
-            if (categoryId == 0)
-            {
-                filteredProducts = products.Where(p => p != null && p.IsActive).ToList();
-                Console.WriteLine($"Выбраны все товары: {filteredProducts.Count} шт");
-            }
-            else
-            {
-                filteredProducts = products
-                    .Where(p => p != null && p.IsActive && p.CategoryId == categoryId)
-                    .ToList();
-                Console.WriteLine($"Отфильтровано по категории {categoryId}: {filteredProducts.Count} шт");
-            }
-        }
-        catch (Exception ex)
+        if (categoryId == 0)
         {
-            Console.WriteLine($"!!! ОШИБКА в FilterCategory: {ex.Message}");
-            Console.WriteLine($"!!! StackTrace: {ex.StackTrace}");
-            filteredProducts = new List<ProductDto>();
+            filteredProducts = products.Where(p => p != null && p.IsActive).ToList();
         }
+        else
+        {
+            filteredProducts = products
+                .Where(p => p != null && p.IsActive && p.CategoryId == categoryId)
+                .ToList();
+        }
+    }
+
+    private async Task ToggleWishlist(int productId)
+    {
+        if (!AuthService.IsAuthenticated) return;
+
+        bool currentStatus = wishlistStatus.GetValueOrDefault(productId, false);
+
+        if (currentStatus)
+        {
+            await WishlistService.RemoveFromWishlistAsync(productId);
+        }
+        else
+        {
+            await WishlistService.AddToWishlistAsync(productId);
+        }
+
+        // Обновляем статус
+        wishlistStatus[productId] = !currentStatus;
     }
 
     private void GoToProduct(int id)
     {
-        Console.WriteLine($"Переход к товару ID: {id}");
-        try
-        {
-            Navigation.NavigateTo($"/product/{id}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"!!! ОШИБКА навигации: {ex.Message}");
-        }
+        Navigation.NavigateTo($"/product/{id}");
     }
 
     private string GetProductIcon(string? type)
     {
         if (string.IsNullOrEmpty(type)) return "📦";
-        
         return type.ToLower() switch
         {
             "music" => "🎵",

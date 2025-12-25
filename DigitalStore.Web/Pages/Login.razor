@@ -1,0 +1,133 @@
+﻿@page "/login"
+@using DigitalStore.Web.Services
+@using System.ComponentModel.DataAnnotations  // ← Вот это обязательно добавь!
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Вход / Регистрация — Digital Store</PageTitle>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <h3 class="text-center mb-4">
+                        <i class="bi bi-person-circle me-2"></i>
+                        Вход или регистрация
+                    </h3>
+
+                    @if (!string.IsNullOrEmpty(_message))
+                    {
+                        <div class="alert @(_isSuccess ? "alert-success" : "alert-danger") mb-4">
+                            <i class="bi @(_isSuccess ? "bi-check-circle" : "bi-exclamation-triangle") me-2"></i>
+                            @_message
+                        </div>
+                    }
+
+                    <EditForm Model="_model" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <InputText @bind-Value="_model.Email" class="form-control" placeholder="your@email.com" autocomplete="email" />
+                            <ValidationMessage For="@(() => _model.Email)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Пароль</label>
+                            <InputText @bind-Value="_model.Password" type="password" class="form-control" placeholder="минимум 8 символов" autocomplete="current-password" />
+                            <ValidationMessage For="@(() => _model.Password)" class="text-danger" />
+                        </div>
+
+                        <div class="d-grid gap-3">
+                            <button type="submit" class="btn btn-primary btn-lg" disabled="@_isProcessing">
+                                @if (_isProcessing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                }
+                                Войти
+                            </button>
+
+                            <button type="button" class="btn btn-outline-primary btn-lg" @onclick="HandleSignup" disabled="@_isProcessing">
+                                Зарегистрироваться
+                            </button>
+                        </div>
+                    </EditForm>
+
+                    <div class="text-center mt-4">
+                        <a href="/" class="text-muted">← Вернуться на главную</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private class LoginModel
+    {
+        [Required(ErrorMessage = "Email обязателен")]
+        [EmailAddress(ErrorMessage = "Неверный формат email")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Пароль обязателен")]
+        [MinLength(8, ErrorMessage = "Пароль должен быть минимум 8 символов")]
+        public string Password { get; set; } = "";
+    }
+
+    private LoginModel _model = new();
+    private string? _message;
+    private bool _isSuccess;
+    private bool _isProcessing = false;
+    private bool _isSignup = false;
+
+    protected override void OnInitialized()
+    {
+        if (AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/my-orders");
+        }
+    }
+    private async Task HandleSubmit()
+    {
+        _isProcessing = true;
+        _message = null;
+        StateHasChanged();
+
+        bool success;
+
+        if (_isSignup)
+        {
+            success = await AuthService.SignUpAsync(_model.Email.Trim(), _model.Password);
+            _message = success
+                ? "Регистрация успешна! Теперь войдите."
+                : "Ошибка регистрации. Возможно, email уже используется.";
+
+            _isSignup = false; 
+        }
+        else
+        {
+            success = await AuthService.SignInAsync(_model.Email.Trim(), _model.Password);
+            _message = success
+                ? "Вход выполнен успешно!"
+                : "Неверный email или пароль.";
+        }
+
+
+        _isSuccess = success;
+
+        if (success && !_isSignup)
+        {
+            Navigation.NavigateTo("/my-orders");
+        }
+
+        _isProcessing = false;
+        StateHasChanged();
+    }
+
+    private void HandleSignup()
+    {
+        _isSignup = true;
+        _ = HandleSubmit();
+    }
+}

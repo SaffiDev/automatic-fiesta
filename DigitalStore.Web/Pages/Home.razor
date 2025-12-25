@@ -1,7 +1,217 @@
 ﻿@page "/"
+@using DigitalStore.Application.DTOs
+@using DigitalStore.Web.Services
+@inject SupabaseService Supabase
+@inject NavigationManager Navigation
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Digital Store — Цифровые товары мгновенно</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container py-5">
+    <!-- Герой-секция с поиском -->
+    <div class="text-center mb-5 py-5 bg-light rounded-4 shadow-sm">
+        <h1 class="display-3 fw-bold mb-3">Digital Store</h1>
+        <p class="lead text-muted mb-4 fs-4">Музыка • Электронные книги • Программное обеспечение</p>
+        <p class="fs-5 mb-5 text-secondary">Мгновенная доставка прямо на email. Без ожидания.</p>
 
-Welcome to your new app.(Главная страница с топами товаров и поиском и тд и тп будет сделана позже,простите за неудобства)
+        <!-- Поисковая строка -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-md-10 col-12">
+                <div class="input-group input-group-lg shadow-sm">
+                    <span class="input-group-text bg-white">🔍</span>
+                    <input type="text" 
+                           class="form-control" 
+                           placeholder="Найти товар по названию..." 
+                           @bind="SearchQuery" 
+                           @oninput="HandleSearchInput" />
+                    @if (!string.IsNullOrWhiteSpace(SearchQuery))
+                    {
+                        <button class="btn btn-outline-secondary" @onclick="ClearSearch">✕</button>
+                    }
+                </div>
+
+                @if (isSearching)
+                {
+                    <div class="text-center mt-4">
+                        <small class="text-muted">Поиск...</small>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <a href="/catalog" class="btn btn-outline-primary btn-lg px-5">Все товары в каталоге →</a>
+        </div>
+    </div>
+
+    <!-- Заголовок результатов -->
+    @if (!string.IsNullOrWhiteSpace(SearchQuery) && displayedProducts.Any())
+    {
+        <h2 class="mb-4 text-center">
+            Результаты поиска по запросу "@SearchQuery"
+            <small class="text-muted">(@displayedProducts.Count товаров)</small>
+        </h2>
+    }
+    else if (!string.IsNullOrWhiteSpace(SearchQuery) && !displayedProducts.Any())
+    {
+        <h2 class="mb-4 text-center text-muted">Ничего не найдено по запросу "@SearchQuery"</h2>
+    }
+    else
+    {
+        <h2 class="mb-4 text-center fw-bold">Популярное прямо сейчас</h2>
+    }
+
+    <!-- Товары -->
+    @if (isLoading)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <p class="mt-3 text-muted">Загрузка товаров...</p>
+        </div>
+    }
+    else if (!displayedProducts.Any())
+    {
+        <div class="text-center py-5">
+            <p class="fs-4 text-muted">
+                Товаров пока нет или ничего не найдено.
+            </p>
+            <a href="/catalog" class="btn btn-primary btn-lg">Перейти в каталог</a>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+            @foreach (var product in displayedProducts)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 hover-shadow transition">
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <span class="display-4 opacity-50">@GetProductIcon(product?.ProductType ?? "")</span>
+                        </div>
+
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title mb-2">@(product?.Name ?? "Без названия")</h5>
+                            @if (!string.IsNullOrEmpty(product?.Author))
+                            {
+                                <p class="card-text text-muted small mb-2">Автор: @product.Author</p>
+                            }
+                            <div class="mt-auto">
+                                <p class="card-text mb-3">
+                                    <strong class="text-success fs-4">@((product?.Price ?? 0).ToString("F0")) ₽</strong>
+                                </p>
+                                <a href="@($"/product/{product?.Id}")" class="btn btn-primary w-100">Подробнее</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (string.IsNullOrWhiteSpace(SearchQuery))
+    {
+        <div class="text-center mt-5">
+            <a href="/catalog" class="btn btn-primary btn-lg px-5">Смотреть все товары →</a>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ProductDto> displayedProducts = new();
+    private string SearchQuery { get; set; } = "";
+    private bool isLoading = true;
+    private bool isSearching = false;
+    private Timer? _debounceTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPopularProducts();
+    }
+
+    private async Task LoadPopularProducts()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var allProducts = await Supabase.GetProductsAsync();
+            displayedProducts = allProducts
+                .Where(p => p.IsActive)
+                .OrderByDescending(p => p.SalesCount)
+                .Take(12)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки популярных: {ex.Message}");
+            displayedProducts = new();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // ИСПРАВЛЕННЫЙ обработчик — берёт значение из input
+    private void HandleSearchInput(ChangeEventArgs e)
+    {
+        SearchQuery = e?.Value?.ToString() ?? "";
+
+        _debounceTimer?.Dispose();
+        _debounceTimer = new Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await PerformServerSearch();
+            });
+        }, null, 500, Timeout.Infinite);
+    }
+
+    private async Task PerformServerSearch()
+    {
+        isSearching = true;
+        StateHasChanged();
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(SearchQuery))
+            {
+                await LoadPopularProducts();
+            }
+            else
+            {
+                displayedProducts = await Supabase.SearchProductsAsync(SearchQuery);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка поиска: {ex.Message}");
+            displayedProducts = new();
+        }
+        finally
+        {
+            isSearching = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        SearchQuery = "";
+        await LoadPopularProducts();
+    }
+
+    private string GetProductIcon(string? type)
+    {
+        return type?.ToLower() switch
+        {
+            "music" => "🎵",
+            "book" => "📖",
+            "software" => "💻",
+            _ => "📦"
+        };
+    }
+}

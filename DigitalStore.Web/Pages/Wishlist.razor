@@ -1,0 +1,184 @@
+﻿@page "/wishlist"
+@using DigitalStore.Application.DTOs
+@using DigitalStore.Web.Services
+@inject WishlistService WishlistService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject CartService CartService
+
+<PageTitle>Избранное — Digital Store</PageTitle>
+
+<div class="container my-5">
+    <h1 class="mb-5">Избранное</h1>
+
+    @if (!AuthService.IsAuthenticated)
+    {
+        <div class="alert alert-info text-center py-5">
+            <i class="bi bi-heart" style="font-size: 4rem; opacity: 0.5;"></i>
+            <h4 class="mt-4">Войдите в аккаунт</h4>
+            <p>Чтобы увидеть избранные товары, нужно авторизоваться</p>
+            <a href="/login" class="btn btn-primary btn-lg">Войти или зарегистрироваться</a>
+        </div>
+    }
+    else if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <p class="mt-3">Загружаем ваши избранные товары...</p>
+        </div>
+    }
+    else if (_wishlistProducts.Count == 0)
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-heart" style="font-size: 4rem; opacity: 0.3;"></i>
+            <h4 class="mt-4">Избранное пусто</h4>
+            <p>Добавляйте товары в избранное, чтобы не потерять их!</p>
+            <a href="/catalog" class="btn btn-success btn-lg">Перейти в каталог</a>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-3 g-5">
+            @foreach (var product in _wishlistProducts)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 hover-shadow position-relative">
+                        <!-- Кнопка удаления из избранного -->
+                        <div class="position-absolute top-0 end-0 p-2" style="z-index: 10;">
+                            <button class="btn btn-danger btn-sm rounded-circle shadow"
+                                    @onclick="() => RemoveFromWishlist(product.Id)"
+                                    @onclick:preventDefault
+                                    @onclick:stopPropagation>
+                                <i class="bi bi-heart-fill"></i>
+                            </button>
+                        </div>
+
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 250px;">
+                            <span class="display-1 opacity-50">@GetProductIcon(product.ProductType)</span>
+                        </div>
+
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title mb-3">@product.Name</h5>
+
+                            @if (!string.IsNullOrEmpty(product.Author))
+                            {
+                                <p class="card-text text-muted small mb-1">Автор: @product.Author</p>
+                            }
+                            @if (!string.IsNullOrEmpty(product.Publisher))
+                            {
+                                <p class="card-text text-muted small mb-2">@product.Publisher</p>
+                            }
+
+                            <div class="mt-auto">
+                                <p class="card-text mb-4">
+                                    <strong class="text-success display-6">@product.Price.ToString("F0") ₽</strong>
+                                </p>
+
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-primary flex-fill"
+                                            @onclick="() => GoToProduct(product.Id)">
+                                        Подробнее
+                                    </button>
+                                    <button class="btn btn-success flex-fill"
+                                            @onclick="() => AddToCart(product)">
+                                        В корзину
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- ТОСТ ПРИ ДОБАВЛЕНИИ В КОРЗИНУ -->
+@if (_showToast)
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
+        <div class="toast show align-items-center text-bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body fw-bold">
+                    ✅ Товар добавлен в корзину!
+                    <a href="/cart" class="text-white text-decoration-underline ms-2">Перейти в корзину</a>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" @onclick="() => _showToast = false"></button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ProductDto> _wishlistProducts = new();
+    private bool _loading = true;
+    private bool _showToast = false;  // <-- добавлено
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthService.OnAuthStateChanged += StateHasChanged;
+
+        if (AuthService.IsAuthenticated)
+        {
+            await LoadWishlist();
+        }
+
+        _loading = false;
+    }
+
+    private async Task LoadWishlist()
+    {
+        _loading = true;
+        _wishlistProducts = await WishlistService.GetWishlistProductsAsync();
+        _loading = false;
+    }
+
+    private async Task RemoveFromWishlist(int productId)
+    {
+        if (await WishlistService.RemoveFromWishlistAsync(productId))
+        {
+            _wishlistProducts.RemoveAll(p => p.Id == productId);
+            StateHasChanged();
+        }
+    }
+
+    private async Task AddToCart(ProductDto product)
+    {
+        await CartService.AddProductAsync(product);
+        
+        // Показываем тост
+        _showToast = true;
+        StateHasChanged();
+
+        // Автоматически скрываем через 4 секунды
+        _ = Task.Delay(4000).ContinueWith(_ =>
+        {
+            _showToast = false;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void GoToProduct(int id)
+    {
+        Navigation.NavigateTo($"/product/{id}");
+    }
+
+    private string GetProductIcon(string? type)
+    {
+        if (string.IsNullOrEmpty(type)) return "📦";
+        return type.ToLower() switch
+        {
+            "music" => "🎵",
+            "book" => "📖",
+            "software" => "💻",
+            _ => "📦"
+        };
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthStateChanged -= StateHasChanged;
+    }
+}

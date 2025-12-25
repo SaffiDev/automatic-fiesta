@@ -1,0 +1,86 @@
+﻿@using DigitalStore.Application.DTOs
+
+<div class="card mt-4 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            @(Product.Id == 0 ? "Добавить новый продукт" : $"Редактировать продукт #{Product.Id}")
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="mb-3">
+                    <label class="form-label">Название</label>
+                    <input type="text" @bind="Product.Name" class="form-control" placeholder="Введите название продукта" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Описание</label>
+                    <textarea @bind="Product.Description" class="form-control" rows="4" placeholder="Описание продукта..."></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Цена (₽)</label>
+                    <input type="number" @bind="Product.Price" class="form-control" placeholder="0" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Категория ID</label>
+                    <input type="number" @bind="Product.CategoryId" class="form-control" placeholder="1" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Тип продукта</label>
+                    <input type="text" @bind="Product.ProductType" class="form-control" placeholder="digital, physical и т.д." />
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label class="form-label">Автор</label>
+                    <input type="text" @bind="Product.Author" class="form-control" placeholder="Автор" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Издатель</label>
+                    <input type="text" @bind="Product.Publisher" class="form-control" placeholder="Издатель" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Версия</label>
+                    <input type="text" @bind="Product.Version" class="form-control" placeholder="1.0.0" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Язык</label>
+                    <input type="text" @bind="Product.Language" class="form-control" placeholder="Русский" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Количество на складе</label>
+                    <input type="number" @bind="Product.StockQuantity" class="form-control" placeholder="0" />
+                </div>
+
+                <div class="form-check mb-3">
+                    <input type="checkbox" @bind="Product.IsActive" class="form-check-input" id="isActiveCheck" />
+                    <label class="form-check-label" for="isActiveCheck">Активен (показывать в каталоге)</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-3 mt-4">
+            <button type="button" class="btn btn-success" @onclick="OnSave">
+                <i class="bi bi-save me-2"></i> Сохранить
+            </button>
+            <button type="button" class="btn btn-secondary" @onclick="OnCancel">
+                <i class="bi bi-x-lg me-2"></i> Отмена
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public ProductResponseDto Product { get; set; } = new();
+    [Parameter] public EventCallback OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+}

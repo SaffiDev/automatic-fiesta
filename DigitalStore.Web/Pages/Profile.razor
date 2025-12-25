@@ -1,0 +1,245 @@
+﻿@page "/Profile"
+@using DigitalStore.Web.Services
+@using DigitalStore.Application.DTOs
+@using static Supabase.Postgrest.Constants
+@using System.ComponentModel.DataAnnotations
+@inject AuthService AuthService
+@inject SupabaseService SupabaseService
+@inject NavigationManager Navigation
+
+<PageTitle>Личный кабинет — Digital Store</PageTitle>
+
+<div class="container my-5">
+    @if (!AuthService.IsAuthenticated)
+    {
+        <div class="alert alert-info text-center py-5">
+            <h4>Войдите в аккаунт</h4>
+            <p>Чтобы попасть в личный кабинет, нужно авторизоваться</p>
+            <a href="/login" class="btn btn-primary btn-lg">Войти или зарегистрироваться</a>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <!-- Левая колонка -->
+            <div class="col-lg-4 mb-5">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body text-center d-flex flex-column justify-content-center">
+                        <div class="mb-4">
+                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mx-auto" style="width: 120px; height: 120px;">
+                                <i class="bi bi-person display-1 text-muted"></i>
+                            </div>
+                        </div>
+                        <h4 class="mb-1">@AuthService.CurrentUser?.Email</h4>
+                        <p class="text-muted mb-4">ID: @AuthService.GetUserId()</p>
+                        <button class="btn btn-outline-danger w-100 mt-auto" @onclick="Logout">
+                            <i class="bi bi-box-arrow-right me-2"></i> Выйти
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Правая колонка -->
+            <div class="col-lg-8">
+                <h2 class="mb-4">Личный кабинет</h2>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-credit-card me-2"></i> Способы оплаты (@_paymentMethods.Count)
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @if (_loadingPaymentMethods)
+                        {
+                            <p class="text-center">
+                                <span class="spinner-border spinner-border-sm"></span> Загрузка...
+                            </p>
+                        }
+                        else if (_paymentMethods.Count == 0)
+                        {
+                            <div class="text-center py-4">
+                                <i class="bi bi-credit-card fs-1 text-muted mb-3"></i>
+                                <p class="text-muted">У вас пока нет сохранённых карт</p>
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var method in _paymentMethods)
+                            {
+                                <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded bg-light">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-credit-card-2-back fs-3 me-3 text-primary"></i>
+                                        <div>
+                                            <strong>@method.CardType.ToUpper() •••• @method.LastFour</strong><br />
+                                            <small class="text-muted">Срок действия: @method.ExpiryDate</small>
+                                            @if (method.IsDefault)
+                                            {
+                                                <span class="badge bg-primary ms-2">По умолчанию</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteCard(method.Id)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            }
+                        }
+
+                        <!-- Форма добавления новой карты -->
+                        <div class="mt-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0">Добавить новую карту</h6>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="FillTestCard">
+                                    Заполнить тестовыми данными
+                                </button>
+                            </div>
+
+                            <EditForm Model="_newCard" OnValidSubmit="AddCard">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary class="text-danger mb-3" />
+
+                                <div class="mb-3">
+                                    <label class="form-label">Номер карты</label>
+                                    <InputText class="form-control" @bind-Value="_newCard.CardNumber" placeholder="4242 4242 4242 4242" />
+                                    <ValidationMessage For="@(() => _newCard.CardNumber)" class="text-danger" />
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label">Срок действия</label>
+                                        <InputText class="form-control" @bind-Value="_newCard.ExpiryDate" placeholder="MM/YY" />
+                                        <ValidationMessage For="@(() => _newCard.ExpiryDate)" class="text-danger" />
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label">CVV</label>
+                                        <InputText class="form-control" @bind-Value="_newCard.CVV" placeholder="123" maxlength="4" />
+                                        <ValidationMessage For="@(() => _newCard.CVV)" class="text-danger" />
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Имя держателя</label>
+                                    <InputText class="form-control" @bind-Value="_newCard.CardHolder" placeholder="IVAN IVANOV" />
+                                    <ValidationMessage For="@(() => _newCard.CardHolder)" class="text-danger" />
+                                </div>
+
+                                <button type="submit"
+                                        class="btn btn-primary w-100"
+                                        disabled="@_isAddingCard">
+                                    @if (_isAddingCard)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                        <text>Сохранение...</text>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-plus-circle me-2"></i>
+                                        <text>Сохранить карту</text>
+                                    }
+                                </button>
+                            </EditForm>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<PaymentMethodDto> _paymentMethods = new();
+    private List<PaymentTransactionDto> _transactions = new();
+    private bool _loadingPaymentMethods = true;
+    private bool _loadingTransactions = true;
+    private bool _isAddingCard = false;
+
+    private NewCardModel _newCard = new();
+    private EditContext EditContext;
+
+    private class NewCardModel
+    {
+        [Required(ErrorMessage = "Введите номер карты")]
+        [MinLength(12, ErrorMessage = "Номер карты должен содержать минимум 12 цифр")]
+        [MaxLength(19, ErrorMessage = "Номер карты слишком длинный")]
+        public string CardNumber { get; set; } = "";
+
+        [Required(ErrorMessage = "Введите срок действия")]
+        [RegularExpression(@"^(0[1-9]|1[0-2])\/\d{2}$", ErrorMessage = "Формат: MM/YY (например, 12/28)")]
+        public string ExpiryDate { get; set; } = "";
+
+        [Required(ErrorMessage = "Введите CVV")]
+        [RegularExpression(@"^\d{3,4}$", ErrorMessage = "CVV должен состоять из 3 или 4 цифр")]
+        public string CVV { get; set; } = "";
+
+        [Required(ErrorMessage = "Введите имя держателя")]
+        public string CardHolder { get; set; } = "";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated) return;
+
+        EditContext = new EditContext(_newCard); // ← Важно: создаём контекст валидации
+
+        _loadingPaymentMethods = true;
+        _paymentMethods = await SupabaseService.GetPaymentMethodsAsync();
+        _loadingPaymentMethods = false;
+
+        _loadingTransactions = true;
+        _transactions = await SupabaseService.GetTransactionsAsync(AuthService.GetUserId());
+        _loadingTransactions = false;
+    }
+
+    private void FillTestCard()
+    {
+        _newCard.CardNumber = "4242 4242 4242 4242";
+        _newCard.ExpiryDate = "12/28";
+        _newCard.CVV = "123";
+        _newCard.CardHolder = "TEST USER";
+
+        EditContext.NotifyValidationStateChanged(); // обновляем состояние валидации
+    }
+
+    private async Task AddCard()
+    {
+        _isAddingCard = true;
+        StateHasChanged();
+
+        var cleanNumber = new string(_newCard.CardNumber.Where(char.IsDigit).ToArray());
+
+        var method = new PaymentMethodDto
+        {
+            CardType = cleanNumber.StartsWith("4") ? "visa" : "mastercard",
+            LastFour = cleanNumber[^4..],
+            ExpiryDate = _newCard.ExpiryDate,
+            IsDefault = !_paymentMethods.Any()
+        };
+
+        var added = await SupabaseService.AddPaymentMethodAsync(method);
+
+        if (added != null)
+        {
+            _paymentMethods.Add(added);
+            _newCard = new NewCardModel(); // очищаем форму
+            EditContext = new EditContext(_newCard); // обновляем контекст
+        }
+
+        _isAddingCard = false;
+    }
+
+    private async Task DeleteCard(Guid id)
+    {
+        var success = await SupabaseService.DeletePaymentMethodAsync(id);
+        if (success)
+        {
+            _paymentMethods.RemoveAll(m => m.Id == id);
+        }
+    }
+
+    private async Task Logout()
+    {
+        await AuthService.SignOutAsync();
+        Navigation.NavigateTo("/");
+    }
+}

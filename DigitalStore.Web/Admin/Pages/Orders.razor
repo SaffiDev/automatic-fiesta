@@ -1,0 +1,159 @@
+﻿@page "/admin/orders"
+@using DigitalStore.Application.DTOs
+@inject HttpClient Http
+
+<PageTitle>Админ — Заказы</PageTitle>
+
+<h2 class="mb-4">Все заказы (@_orders.Count)</h2>
+
+@if (_loading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3">Загрузка заказов...</p>
+    </div>
+}
+else if (_orders.Any())
+{
+    <div class="accordion" id="ordersAccordion">
+        @foreach (var order in _orders)
+        {
+            var collapseId = $"collapse_{order.Id}";
+
+            <div class="accordion-item mb-3 shadow-sm">
+                <h2 class="accordion-header" id="@($"heading_{order.Id}")">
+                    <button class="accordion-button @(order.Id == _expandedOrderId ? "" : "collapsed")"
+                            type="button"
+                            @onclick="() => ToggleOrder(order.Id)">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div>
+                                <strong>Заказ №@order.Id</strong>
+                                <span class="ms-3 text-muted">@order.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge @(order.Status == "paid" ? "bg-success" : "bg-warning") me-3">
+                                    @(order.Status == "paid" ? "Оплачено" : "Ожидает оплаты")
+                                </span>
+                                <strong class="text-success">@order.FinalAmount.ToString("N0") ₽</strong>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="@collapseId"
+                     class="accordion-collapse collapse @(order.Id == _expandedOrderId ? "show" : "")"
+                     aria-labelledby="@($"heading_{order.Id}")">
+                    <div class="accordion-body">
+                        <p><strong>Пользователь UID:</strong> @order.AuthUserId</p>
+                        <p><strong>Номер заказа:</strong> @order.OrderNumber</p>
+                        <p><strong>Создан:</strong> @order.CreatedAt.ToString("dd.MM.yyyy HH:mm")</p>
+                        @if (order.PaidAt.HasValue)
+                        {
+                            <p><strong>Оплачен:</strong> @order.PaidAt.Value.ToString("dd.MM.yyyy HH:mm")</p>
+                        }
+
+                        <h6 class="mt-4">Товары в заказе:</h6>
+                        @if (_orderItemsLoading && order.Id == _expandedOrderId)
+                        {
+                            <p>Загрузка товаров...</p>
+                        }
+                        else if (_currentOrderItems.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Товар</th>
+                                            <th>Кол-во</th>
+                                            <th>Цена за шт.</th>
+                                            <th>Сумма</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in _currentOrderItems)
+                                        {
+                                            <tr>
+                                                <td>@item.ProductName</td>
+                                                <td>@item.Quantity</td>
+                                                <td>@item.UnitPrice.ToString("N0") ₽</td>
+                                                <td>@item.TotalPrice.ToString("N0") ₽</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted">Товары не найдены</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i> Заказов пока нет.
+    </div>
+}
+
+@code {
+    private List<OrderDto> _orders = new();
+    private List<OrderItemDto> _currentOrderItems = new();
+    private int? _expandedOrderId;
+    private bool _loading = true;
+    private bool _orderItemsLoading = false;
+
+    private const string OrdersApiUrl = "http://localhost:5090/api/admin/orders"; // порт твоего API
+    private const string OrderItemsApiUrl = "http://localhost:5090/api/admin/order-items"; // если сделаешь отдельный эндпоинт, или используй один
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrders();
+    }
+
+    private async Task LoadOrders()
+    {
+        _loading = true;
+        try
+        {
+            _orders = await Http.GetFromJsonAsync<List<OrderDto>>(OrdersApiUrl) ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Ошибка загрузки заказов: " + ex.Message);
+            _orders = new();
+        }
+        _loading = false;
+    }
+
+    private async Task ToggleOrder(int? orderId)
+    {
+        if (_expandedOrderId == orderId)
+        {
+            _expandedOrderId = null;
+            _currentOrderItems = new();
+            return;
+        }
+
+        _expandedOrderId = orderId;
+        _orderItemsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            
+             var allItems = await Http.GetFromJsonAsync<List<OrderItemDto>>("api/admin/order-items");
+             _currentOrderItems = allItems?.Where(i => i.OrderId == orderId).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Ошибка загрузки товаров заказа: " + ex.Message);
+            _currentOrderItems = new();
+        }
+
+        _orderItemsLoading = false;
+    }
+}

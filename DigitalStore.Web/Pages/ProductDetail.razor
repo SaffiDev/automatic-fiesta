@@ -1,10 +1,11 @@
 ﻿@page "/product/{ProductId:int}"
 @using DigitalStore.Application.DTOs
 @using DigitalStore.Web.Services
-@using DigitalStore.Web.WebModels   <!-- ← ДОБАВИЛИ USING ДЛЯ CartProductDto -->
 @inject SupabaseService Supabase
 @inject NavigationManager Navigation
 @inject CartService CartService
+@inject WishlistService WishlistService 
+@inject AuthService AuthService
 
 <PageTitle>@(_product?.Name ?? "Товар не найден") — Digital Store</PageTitle>
 
@@ -13,45 +14,47 @@
     {
         <div class="text-center my-5">
             <p class="lead">Загрузка товара...</p>
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        </div>
-    }
-    else if (!string.IsNullOrEmpty(_errorMessage))
-    {
-        <div class="alert alert-danger">
-            <h4>Ошибка загрузки товара</h4>
-            <p>@_errorMessage</p>
-            @if (!string.IsNullOrEmpty(_errorDetails))
-            {
-                <hr />
-                <pre style="font-size: 12px; max-height: 300px; overflow-y: auto;">@_errorDetails</pre>
-            }
-            <a href="/catalog" class="btn btn-primary mt-3">Вернуться в каталог</a>
+            <div class="spinner-border text-primary" role="status"></div>
         </div>
     }
     else if (_product == null)
     {
         <div class="alert alert-warning text-center">
             <h4>Товар не найден</h4>
-            <p>Возможно, товар был удалён или указан неверный адрес.</p>
             <a href="/catalog" class="btn btn-primary">Вернуться в каталог</a>
         </div>
     }
     else
     {
         <div class="row g-5">
-            <!-- Левая часть: большая иконка -->
             <div class="col-lg-6">
                 <div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 500px;">
                     <span class="display-1 opacity-50">@GetProductIcon(_product.ProductType)</span>
                 </div>
             </div>
 
-            <!-- Правая часть: информация о товаре -->
             <div class="col-lg-6">
                 <h1 class="display-5 fw-bold mb-3">@_product.Name</h1>
+
+                @if (_averageRating > 0)
+                {
+                    <div class="mb-3">
+                        <span class="text-warning fs-4">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                @if (i <= Math.Round(_averageRating))
+                                {
+                                    <i class="bi bi-star-fill"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-star"></i>
+                                }
+                            }
+                        </span>
+                        <span class="text-muted ms-2">@_averageRating.ToString("F1") (@_reviews.Count отзывов)</span>
+                    </div>
+                }
 
                 @if (!string.IsNullOrEmpty(_product.Author))
                 {
@@ -61,7 +64,6 @@
                 {
                     <p class="text-muted mb-3">Издатель: @_product.Publisher</p>
                 }
-
                 @if (!string.IsNullOrEmpty(_product.Version))
                 {
                     <p class="text-muted mb-1">Версия: @_product.Version</p>
@@ -80,24 +82,35 @@
                     <p class="fs-5 text-dark mb-4">@_product.Description</p>
                 }
 
-                <div class="mt-5 d-flex gap-3">
-                    <button class="btn btn-success btn-lg px-5" @onclick="AddToCart">
-                        В корзину
-                    </button>
-                    <button class="btn btn-outline-secondary btn-lg" @onclick="GoBack">
-                        Назад в каталог
-                    </button>
+                <div class="mt-5 d-flex gap-3 flex-wrap">
+                    <button class="btn btn-success btn-lg px-5" @onclick="AddToCart">В корзину</button>
+                    <button class="btn btn-outline-secondary btn-lg" @onclick="GoBack">Назад</button>
+
+                    @if (AuthService.IsAuthenticated)
+                    {
+                        @if (_isInWishlist)
+                        {
+                            <button class="btn btn-danger btn-lg" @onclick="RemoveFromWishlist">
+                                <i class="bi bi-heart-fill"></i> Удалить из избранного
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-danger btn-lg" @onclick="AddToWishlist">
+                                <i class="bi bi-heart"></i> В избранное
+                            </button>
+                        }
+                    }
                 </div>
 
-                <!-- Всплывающее уведомление -->
                 @if (_showToast)
                 {
                     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
-                        <div class="toast show align-items-center text-bg-success border-0" role="alert">
+                        <div class="toast show align-items-center text-bg-success border-0">
                             <div class="d-flex">
                                 <div class="toast-body fw-bold">
                                     ✅ Товар добавлен в корзину!
-                                    <a href="/cart" class="text-white text-decoration-underline ms-2">Перейти в корзину</a>
+                                    <a href="/cart" class="text-white text-decoration-underline ms-2">Перейти</a>
                                 </div>
                                 <button type="button" class="btn-close btn-close-white me-2 m-auto" @onclick="() => _showToast = false"></button>
                             </div>
@@ -105,66 +118,154 @@
                     </div>
                 }
             </div>
-        </div> 
+        </div>
 
-        <!--Заглушка отзывов -->
+        <!-- ОТЗЫВЫ -->
         <div class="mt-5">
-            <h3 class="mb-4">Отзывы</h3>
-            <p class="text-muted">Отзывы будут доступны после реализации системы рейтингов.</p>
+            <h3 class="mb-4">Отзывы (@_reviews.Count)</h3>
+
+            @if (AuthService.IsAuthenticated && !_hasUserReviewed)
+            {
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Оставить отзыв</h5>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Рейтинг *</label>
+                            <div class="btn-group" role="group">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    var rating = i;
+                                    <button type="button" 
+                                            class="btn @(rating == _newReviewRating ? "btn-warning" : "btn-outline-warning")"
+                                            @onclick="() => _newReviewRating = rating">
+                                        @rating ★
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Заголовок *</label>
+                            <input type="text" class="form-control" @bind="_newReviewTitle" placeholder="Краткое резюме вашего отзыва" maxlength="100" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Комментарий</label>
+                            <textarea class="form-control" rows="4" @bind="_newReviewComment" placeholder="Расскажите подробнее о товаре..." maxlength="1000"></textarea>
+                        </div>
+
+                        <button class="btn btn-primary btn-lg" @onclick="SubmitReview" disabled="@(_newReviewRating == 0 || string.IsNullOrWhiteSpace(_newReviewTitle))">
+                            <i class="bi bi-send me-2"></i> Отправить отзыв
+                        </button>
+                    </div>
+                </div>
+            }
+            else if (AuthService.IsAuthenticated && _hasUserReviewed)
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-check-circle me-2"></i> Вы уже оставили отзыв на этот товар
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-secondary">
+                    <i class="bi bi-person me-2"></i> <a href="/auth/login" class="alert-link">Войдите</a>, чтобы оставить отзыв
+                </div>
+            }
+
+            @if (_reviews.Any())
+            {
+                foreach (var review in _reviews)
+                {
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-1">@review.Title</h6>
+                                    <div class="text-warning mb-2">
+                                        @for (int i = 1; i <= 5; i++)
+                                        {
+                                            @if (i <= review.Rating)
+                                            {
+                                                <i class="bi bi-star-fill"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-star"></i>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                                <small class="text-muted">@review.CreatedAt.ToString("dd.MM.yyyy")</small>
+                            </div>
+
+                            @if (review.IsVerifiedPurchase)
+                            {
+                                <span class="badge bg-success mb-2">
+                                    <i class="bi bi-check-circle me-1"></i> Подтвержденная покупка
+                                </span>
+                            }
+
+                            @if (!string.IsNullOrEmpty(review.Comment))
+                            {
+                                <p class="mb-2">@review.Comment</p>
+                            }
+
+                            @if (review.HelpfulCount > 0)
+                            {
+                                <small class="text-muted">
+                                    <i class="bi bi-hand-thumbs-up me-1"></i> @review.HelpfulCount человек считают это полезным
+                                </small>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-chat-dots text-muted" style="font-size: 4rem;"></i>
+                    <p class="text-muted mt-3">Отзывов пока нет. Будьте первым!</p>
+                </div>
+            }
         </div>
     }
-</div> 
+</div>
 
 @code {
     [Parameter] public int ProductId { get; set; }
 
     private ProductDto? _product;
+    private List<ReviewDto> _reviews = new();
     private bool _isLoading = true;
-    private string? _errorMessage;
-    private string? _errorDetails;
     private bool _showToast = false;
+    private bool _isInWishlist = false;
+    private double _averageRating = 0;
+    private bool _hasUserReviewed = false;
+
+    private int _newReviewRating = 0;
+    private string _newReviewTitle = string.Empty;
+    private string _newReviewComment = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadProduct();
-    }
-
-    private async Task LoadProduct()
-    {
-        try
+        await LoadReviews();
+        
+        var userId = AuthService.GetUserId();
+        if (AuthService.IsAuthenticated && !string.IsNullOrEmpty(userId))
         {
-            _isLoading = true;
-            _errorMessage = null;
-            _errorDetails = null;
-
-            _product = await Supabase.GetProductByIdAsync(ProductId);
-
-            if (_product == null)
-            {
-                _errorMessage = "Товар с таким ID не найден или неактивен.";
-            }
-        }
-        catch (Exception ex)
-        {
-            _errorMessage = $"Ошибка загрузки: {ex.Message}";
-            _errorDetails = ex.ToString();
-            _product = null;
-        }
-        finally
-        {
-            _isLoading = false;
+            _hasUserReviewed = await Supabase.HasUserReviewedProductAsync(ProductId, userId);
         }
     }
-
     private async Task AddToCart()
     {
         if (_product != null)
         {
             await CartService.AddProductAsync(_product);
-            
             _showToast = true;
-            StateHasChanged();
-
+            
             _ = Task.Delay(4000).ContinueWith(_ =>
             {
                 _showToast = false;
@@ -172,16 +273,91 @@
             });
         }
     }
-
-    private void GoBack()
+    private async Task LoadProduct()
     {
-        Navigation.NavigateTo("/catalog");
+        try
+        {
+            _isLoading = true;
+            _product = await Supabase.GetProductByIdAsync(ProductId);
+
+            if (_product != null && AuthService.IsAuthenticated)
+            {
+                _isInWishlist = await WishlistService.IsInWishlistAsync(ProductId);
+            }
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
+
+    private async Task LoadReviews()
+    {
+        _reviews = await Supabase.GetProductReviewsAsync(ProductId);
+        _averageRating = await Supabase.GetAverageRatingAsync(ProductId);
+    }
+
+    private async Task SubmitReview()
+    {
+        if (_newReviewRating == 0 || string.IsNullOrWhiteSpace(_newReviewTitle)) return;
+
+        var review = new ReviewDto
+        {
+            ProductId = ProductId,
+            AuthUserId = AuthService.GetUserId(),
+            Rating = _newReviewRating,
+            Title = _newReviewTitle.Trim(),
+            Comment = string.IsNullOrWhiteSpace(_newReviewComment) ? null : _newReviewComment.Trim(),
+            HelpfulCount = 0,
+            CreatedAt = DateTime.UtcNow,  // локально ставим текущую дату
+            IsVerifiedPurchase = false   // или рассчитай, если нужно
+        };
+
+        if (await Supabase.AddReviewAsync(review))
+        {
+            // Сразу добавляем отзыв в начало списка локально — пользователь увидит его мгновенно!
+            _reviews.Insert(0, review);
+
+            // Обновляем средний рейтинг (примерно)
+            var totalRatings = _reviews.Sum(r => r.Rating);
+            _averageRating = _reviews.Count > 0 ? (double)totalRatings / _reviews.Count : 0;
+
+            // Очищаем форму и скрываем её
+            _newReviewRating = 0;
+            _newReviewTitle = string.Empty;
+            _newReviewComment = string.Empty;
+            _hasUserReviewed = true;
+
+            // Опционально: подгружаем свежие данные с сервера через секунду (на случай, если IsVerifiedPurchase изменился)
+            _ = Task.Delay(1000).ContinueWith(async _ => 
+            {
+                await LoadReviews();
+                InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
+    private async Task AddToWishlist()
+    {
+        if (await WishlistService.AddToWishlistAsync(ProductId))
+        {
+            _isInWishlist = true;
+        }
+    }
+
+    private async Task RemoveFromWishlist()
+    {
+        if (await WishlistService.RemoveFromWishlistAsync(ProductId))
+        {
+            _isInWishlist = false;
+        }
+    }
+
+    private void GoBack() => Navigation.NavigateTo("/catalog");
 
     private string GetProductIcon(string? type)
     {
-        if (string.IsNullOrEmpty(type)) return "📦";
-        return type.ToLower() switch
+        return type?.ToLower() switch
         {
             "music" => "🎵",
             "book" => "📖",
